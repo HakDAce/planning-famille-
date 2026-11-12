@@ -1,6 +1,6 @@
 // Service worker : version à jour quand il y a du réseau, cache hors ligne.
 // Les données Firestore ne passent pas par ici (Firebase gère son propre cache hors ligne).
-const CACHE = "planning-v2";
+const CACHE = "planning-v3";
 const SHELL = ["./", "index.html", "style.css", "app.js", "config.js", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
 self.addEventListener("install", e => {

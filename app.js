@@ -160,20 +160,23 @@ function lanes(evs){ // place côte à côte les activités qui se chevauchent
   const flush=()=>{const cols=[];group.forEach(ev=>{let c=cols.findIndex(end=>end<=toMin(ev.start));if(c<0){c=cols.length;cols.push(0)}cols[c]=toMin(ev.end);ev._c=c});group.forEach(ev=>{ev._n=cols.length;out.push(ev)});group=[];gEnd=-1};
   evs.forEach(ev=>{if(group.length&&toMin(ev.start)>=gEnd)flush();group.push(ev);gEnd=Math.max(gEnd,toMin(ev.end))});flush();return out;
 }
-function evHtml(ev,ph){
+function evHtml(ev,ph,mini){
   const top=(toMin(ev.start)-H0*60)/60*ph,h=Math.max(28,(toMin(ev.end)-toMin(ev.start))/60*ph-4);
-  const w=100/ev._n,l=ev._c*w;
+  const w=100/ev._n,l=ev._c*w,gap=mini?1:3;
+  if(mini)return `<button class="ev evm c-${esc(evColor(ev))}" data-ev="${esc(ev.id)}" data-date="${ev.date}" title="${esc(ev.start)} – ${esc(ev.end)} · ${esc(ev.title)}" style="top:${top+1}px;height:${h}px;left:calc(${l}% + ${gap}px);width:calc(${w}% - ${gap*2}px);--prog:${evProgress(ev)}%"><span class="ti">${esc(ev.title)}</span></button>`;
   return `<button class="ev c-${esc(evColor(ev))} ${h<54?"short":""}" data-ev="${esc(ev.id)}" data-date="${ev.date}" title="${esc(ev.start)} – ${esc(ev.end)} · ${esc(ev.title)}" style="top:${top+2}px;height:${h}px;left:calc(${l}% + 3px);width:calc(${w}% - 6px);--prog:${evProgress(ev)}%">
     ${h>=54?`<span class="tm">${ICON.pin}${esc(ev.start)}${ev.repeat==="weekly"?'<span class="rep" title="Chaque semaine">'+ICON.rep+"</span>":""} ${stack(ev.members,3)}</span><span class="ti">${esc(ev.title)}</span>`:`<span class="ti">${esc(ev.title)}</span>`}</button>`;
 }
-function hoursCol(ph){let s="";for(let h=H0;h<=H1;h++)s+=`<span class="hl num" style="top:${(h-H0)*ph}px">${pad(h)}:00</span>`;return s}
+function hoursCol(ph,mini){let s="";for(let h=H0;h<=H1;h++)s+=`<span class="hl num" style="top:${(h-H0)*ph}px">${mini?h+"h":pad(h)+":00"}</span>`;return s}
 function gridLines(ph){let s="";for(let h=H0;h<=H1;h++)s+=`<i class="gridline" style="top:${(h-H0)*ph}px"></i>`;return s}
 function nowTop(ph){const n=now(),m=n.getHours()*60+n.getMinutes();return m<H0*60||m>H1*60?null:(m-H0*60)/60*ph}
-function weekCal(ph){
+function weekCal(ph,mini){
   const ds=weekDates(),today=ymd(now()),H=(H1-H0)*ph,nt=ds.some(d=>ymd(d)===today)?nowTop(ph):null;
-  const head=`<div></div>`+ds.map(d=>`<div class="dh ${ymd(d)===today?"today":""}">${JOURS[dowOf(d)]}<b class="num">${pad(d.getDate())} ${MOIS[d.getMonth()]}</b></div>`).join("");
-  const body=`<div class="hours" style="height:${H}px">${hoursCol(ph)}</div>`+ds.map(d=>`<div class="col ${ymd(d)===today?"today":""}" data-slot="${ymd(d)}" style="height:${H}px">${gridLines(ph)}${lanes(eventsOn(d)).map(e=>evHtml(e,ph)).join("")}</div>`).join("");
-  return `<div class="cal-wrap"><div class="cal">${head}${body}${nt!=null?`<div class="nowline" style="top:${nt+46}px"></div>`:""}</div></div>`;
+  const head=`<div></div>`+ds.map((d,i)=>mini
+    ?`<button class="dh ${ymd(d)===today?"today":""}" data-dayview="${i}" aria-label="Voir le ${JOURS[i].toLowerCase()} ${d.getDate()}">${JOURS[i].slice(0,3)}<b class="num">${d.getDate()}</b></button>`
+    :`<div class="dh ${ymd(d)===today?"today":""}">${JOURS[dowOf(d)]}<b class="num">${pad(d.getDate())} ${MOIS[d.getMonth()]}</b></div>`).join("");
+  const body=`<div class="hours" style="height:${H}px">${hoursCol(ph,mini)}</div>`+ds.map(d=>`<div class="col ${ymd(d)===today?"today":""}" data-slot="${ymd(d)}" style="height:${H}px">${gridLines(ph)}${lanes(eventsOn(d)).map(e=>evHtml(e,ph,mini)).join("")}</div>`).join("");
+  return `<div class="cal-wrap"><div class="cal${mini?" compact":""}">${head}${body}${nt!=null?`<div class="nowline" style="top:${nt+46}px"></div>`:""}</div></div>`;
 }
 function dayCal(ph){
   const ds=weekDates(),d=ds[dayIdx],H=(H1-H0)*ph,nt=ymd(d)===ymd(now())?nowTop(ph):null,evs=eventsOn(d);
@@ -182,7 +185,9 @@ function dayCal(ph){
   <div class="day-cal"><div class="hours" style="height:${H}px">${hoursCol(ph)}</div><div class="col" data-slot="${ymd(d)}" style="position:relative;height:${H}px;border-left:1px solid var(--line)">${gridLines(ph)}${lanes(evs).map(e=>evHtml(e,ph)).join("")}${nt!=null?`<div class="nowline" style="left:0;top:${nt}px"></div>`:""}</div></div>`;
 }
 function weekNav(){const ds=weekDates(),a=ds[0],b=ds[6];return `<div class="week-nav"><button class="round" data-wk="-1" aria-label="Semaine précédente">${ICON.left}</button><span class="rng num">${a.getDate()} ${MOIS[a.getMonth()]} – ${b.getDate()} ${MOIS[b.getMonth()]}</span><button class="round" data-wk="1" aria-label="Semaine suivante">${ICON.right}</button></div>`}
-const agendaBlock=(pw,pn)=>`<div class="only-wide">${weekCal(pw)}</div><div class="only-narrow">${dayCal(pn)}</div>`;
+/* sur téléphone : semaine par défaut, jour en option (choix mémorisé sur l'appareil) */
+const agendaMode=()=>store.get("pf-agenda")==="jour"?"jour":"semaine";
+const agendaBlock=(pw,pn)=>`<div class="only-wide">${weekCal(pw)}</div><div class="only-narrow"><div class="seg seg-sm" role="group" aria-label="Affichage"><button type="button" data-amode="semaine" aria-pressed="${agendaMode()==="semaine"}">Semaine</button><button type="button" data-amode="jour" aria-pressed="${agendaMode()==="jour"}">Jour</button></div>${agendaMode()==="jour"?dayCal(pn):weekCal(pn,true)}</div>`;
 
 /* ---------- prochaine activité ---------- */
 function nextEvent(){const n=now(),m=n.getHours()*60+n.getMinutes();
@@ -345,6 +350,8 @@ document.addEventListener("click",e=>{
   if(b=t.closest("[data-logout]")){auth.signOut();return}
   if(b=t.closest("[data-wk]")){weekStart=addDays(weekStart,7*Number(b.dataset.wk));render();return}
   if(b=t.closest("[data-day]")){dayIdx=Number(b.dataset.day);render();return}
+  if(b=t.closest("[data-amode]")){store.set("pf-agenda",b.dataset.amode);render();return}
+  if(b=t.closest("[data-dayview]")){dayIdx=Number(b.dataset.dayview);store.set("pf-agenda","jour");render();return}
   if(b=t.closest("[data-who]")){chartWho++;render();return}
   if(b=t.closest("[data-cycle]")){cycleTask(b.dataset.cycle);return}
   if(b=t.closest("[data-meal]")){openMeal(b.dataset.meal);return}
