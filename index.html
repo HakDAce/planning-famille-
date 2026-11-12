@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Planning Famille</title>
+<meta name="description" content="Planning familial : agenda de la semaine, activités qui se répètent, tâches, repas et courses partagés avec l'appli Courses.">
+<meta name="theme-color" content="#5b5ff0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Planning">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="configMsg" class="login" hidden><div class="card login-card"><b>Configuration manquante</b><p>Le fichier config.js ne contient pas la configuration Firebase.</p></div></div>
+
+<div id="loginView" class="login" hidden>
+  <form id="loginForm" class="card login-card" novalidate>
+    <div class="brand"><i></i>Planning Famille</div>
+    <p>Connecte-toi avec le même compte que l'appli Courses : menus et liste de courses sont partagés.</p>
+    <div class="fld"><label for="email">E-mail</label><input id="email" type="email" autocomplete="username" inputmode="email"></div>
+    <div class="fld"><label for="pwd">Mot de passe</label><input id="pwd" type="password" autocomplete="current-password"></div>
+    <button class="pill-btn" type="submit">Se connecter</button>
+    <p id="loginMsg" class="err" role="status"></p>
+  </form>
+</div>
+
+<div id="appView" hidden>
+  <div class="app">
+    <aside class="side" aria-label="Navigation">
+      <div class="brand"><i></i>Planning Famille</div>
+      <div class="lbl">Menu</div>
+      <nav id="sideNav"></nav>
+      <div class="fam" id="sideFam"></div>
+      <button class="side-out" data-logout>Se déconnecter</button>
+    </aside>
+    <main class="main">
+      <header class="top">
+        <div>
+          <h1 id="viewTitle">Tableau de bord</h1>
+          <div class="sub" id="todayLabel"></div>
+        </div>
+        <div class="top-actions">
+          <button class="icon-btn" id="themeBtn" aria-label="Changer de thème"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+          <button class="pill-btn" id="addBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span>Ajouter</span></button>
+        </div>
+      </header>
+      <div id="status" class="status" hidden></div>
+      <div id="welcome"></div>
+      <div id="view"></div>
+    </main>
+  </div>
+  <nav class="tabbar" id="tabNav" aria-label="Navigation"></nav>
+</div>
+<div id="layer"></div>
+
+<script src="config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

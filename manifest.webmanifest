@@ -1,0 +1,16 @@
+{
+  "name": "Planning Famille",
+  "short_name": "Planning",
+  "description": "Agenda familial, activités qui se répètent, tâches, repas et courses partagés avec l'appli Courses.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#b9c2ff",
+  "theme_color": "#5b5ff0",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
