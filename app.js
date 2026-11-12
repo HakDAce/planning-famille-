@@ -24,6 +24,7 @@ const BAR={sun:"#ff8a3d",rose:"#ff4f86",violet:"#7445ff",sky:"#2f7cf6",mint:"#0f
 const H0=7,H1=22; // plage horaire affichée
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const hm=m=>pad(Math.floor(m/60))+":"+pad(m%60);
 const plural=(n,w)=>`${n} ${w}${n>1?"s":""}`;
 
 /* ---------- mêmes règles que l'appli Courses (articles et ingrédients) ---------- */
@@ -171,14 +172,14 @@ function nowTop(ph){const n=now(),m=n.getHours()*60+n.getMinutes();return m<H0*6
 function weekCal(ph){
   const ds=weekDates(),today=ymd(now()),H=(H1-H0)*ph,nt=ds.some(d=>ymd(d)===today)?nowTop(ph):null;
   const head=`<div></div>`+ds.map(d=>`<div class="dh ${ymd(d)===today?"today":""}">${JOURS[dowOf(d)]}<b class="num">${pad(d.getDate())} ${MOIS[d.getMonth()]}</b></div>`).join("");
-  const body=`<div class="hours" style="height:${H}px">${hoursCol(ph)}</div>`+ds.map(d=>`<div class="col ${ymd(d)===today?"today":""}" style="height:${H}px">${gridLines(ph)}${lanes(eventsOn(d)).map(e=>evHtml(e,ph)).join("")}</div>`).join("");
+  const body=`<div class="hours" style="height:${H}px">${hoursCol(ph)}</div>`+ds.map(d=>`<div class="col ${ymd(d)===today?"today":""}" data-slot="${ymd(d)}" style="height:${H}px">${gridLines(ph)}${lanes(eventsOn(d)).map(e=>evHtml(e,ph)).join("")}</div>`).join("");
   return `<div class="cal-wrap"><div class="cal">${head}${body}${nt!=null?`<div class="nowline" style="top:${nt+46}px"></div>`:""}</div></div>`;
 }
 function dayCal(ph){
   const ds=weekDates(),d=ds[dayIdx],H=(H1-H0)*ph,nt=ymd(d)===ymd(now())?nowTop(ph):null,evs=eventsOn(d);
   const strip=`<div class="days">${ds.map((x,i)=>{const ev=eventsOn(x);return `<button data-day="${i}" aria-pressed="${i===dayIdx}" class="${ev.length?"has c-"+esc(evColor(ev[0])):""}" aria-label="${JOURS[i]} ${x.getDate()}"><span class="num">${x.getDate()}</span>${J1[i]}</button>`}).join("")}</div>`;
   return `${strip}<div class="card-h" style="margin-bottom:8px"><span style="font-weight:700">${JOURS[dayIdx]} ${d.getDate()} ${MOISL[d.getMonth()]}</span><span class="meta">${plural(evs.length,"activité")}</span></div>
-  <div class="day-cal"><div class="hours" style="height:${H}px">${hoursCol(ph)}</div><div class="col" style="position:relative;height:${H}px;border-left:1px solid var(--line)">${gridLines(ph)}${lanes(evs).map(e=>evHtml(e,ph)).join("")}${nt!=null?`<div class="nowline" style="left:0;top:${nt}px"></div>`:""}</div></div>`;
+  <div class="day-cal"><div class="hours" style="height:${H}px">${hoursCol(ph)}</div><div class="col" data-slot="${ymd(d)}" style="position:relative;height:${H}px;border-left:1px solid var(--line)">${gridLines(ph)}${lanes(evs).map(e=>evHtml(e,ph)).join("")}${nt!=null?`<div class="nowline" style="left:0;top:${nt}px"></div>`:""}</div></div>`;
 }
 function weekNav(){const ds=weekDates(),a=ds[0],b=ds[6];return `<div class="week-nav"><button class="round" data-wk="-1" aria-label="Semaine précédente">${ICON.left}</button><span class="rng num">${a.getDate()} ${MOIS[a.getMonth()]} – ${b.getDate()} ${MOIS[b.getMonth()]}</span><button class="round" data-wk="1" aria-label="Semaine suivante">${ICON.right}</button></div>`}
 const agendaBlock=(pw,pn)=>`<div class="only-wide">${weekCal(pw)}</div><div class="only-narrow">${dayCal(pn)}</div>`;
@@ -306,7 +307,7 @@ function vAccueil(){
   <section class="card g-members g-m4"><div class="card-h"><h2>La famille cette semaine</h2><button class="ghost-btn" data-view="famille">Gérer</button></div><div class="members">${memberCards()}</div></section></div>`;
 }
 function vAgenda(){
-  return `<section class="card"><div class="card-h" style="flex-wrap:wrap">${weekNav()}<div class="legend" style="margin:0">${S.members.map(m=>`<span class="c-${esc(m.color)}"><i></i>${esc(m.name)}</span>`).join("")}</div></div>${agendaBlock(58,56)}</section>`;
+  return `<section class="card"><div class="card-h" style="flex-wrap:wrap">${weekNav()}<div class="legend" style="margin:0">${S.members.map(m=>`<span class="c-${esc(m.color)}"><i></i>${esc(m.name)}</span>`).join("")}</div></div>${agendaBlock(58,56)}<p class="hint">Touche une case vide de l'agenda pour ajouter une activité à ce jour et à cette heure.</p></section>`;
 }
 function vRepas(){
   return `<div class="grid"><section class="card g-mealweek"><div class="card-h" style="flex-wrap:wrap"><h2>Menus de la semaine</h2>${weekNav()}</div>${mealsGrid()}
@@ -354,6 +355,11 @@ document.addEventListener("click",e=>{
   if(b=t.closest("[data-task]")){openTask(S.tasks.find(x=>x.id===b.dataset.task));return}
   if(b=t.closest("[data-member]")){openMember(S.members.find(x=>x.id===b.dataset.member));return}
   if(b=t.closest("[data-add]")){const k=b.dataset.add;if(!live()||k==="member")return openMember(null);k==="task"?openTask(null):openEvent(null);return}
+  if(b=t.closest("[data-slot]")){ // case vide de l'agenda : nouvelle activité à ce jour et cette heure
+    if(!live())return openMember(null);
+    const r=b.getBoundingClientRect(),ph=r.height/(H1-H0);
+    let m=H0*60+Math.floor((e.clientY-r.top)/ph*2)*30;m=Math.max(H0*60,Math.min(H1*60-60,m));
+    openEvent(null,null,{date:b.dataset.slot,start:hm(m),end:hm(m+60)});return}
 });
 $("#addBtn").addEventListener("click",()=>{
   if(!live())return openMember(null);
@@ -402,31 +408,55 @@ function close(){$("#layer").innerHTML="";render();lastFocus&&lastFocus.focus&&l
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#layer").innerHTML)close()});
 const picked=(f,grp)=>[...f.querySelectorAll(`[data-grp="${grp}"][aria-pressed="true"]`)].map(b=>b.dataset.val);
 
-function openEvent(ev,occ){
+const JC=["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
+const PRESETS=[["Du lundi au vendredi",[0,1,2,3,4]],["Jours d'école (L M J V)",[0,1,3,4]],["Week-end",[5,6]],["Tous les jours",[0,1,2,3,4,5,6]]];
+function repText(days){
+  if(!days.length)return "Choisis au moins un jour.";
+  const k=days.slice().sort().join(",");
+  if(k==="0,1,2,3,4,5,6")return "Tous les jours.";
+  if(k==="0,1,2,3,4")return "Du lundi au vendredi, chaque semaine.";
+  if(k==="5,6")return "Le week-end, chaque semaine.";
+  const n=days.slice().sort().map(i=>JC[i].toLowerCase());
+  return "Chaque "+(n.length>1?n.slice(0,-1).join(", ")+" et "+n[n.length-1]:n[0])+".";
+}
+function openEvent(ev,occ,pre){
   const ms=S.members,isNew=!ev,series=!!ev&&ev.repeat==="weekly";
-  const d=ymd(view==="agenda"||view==="accueil"?weekDates()[dayIdx]:now());
-  ev=ev||{title:"",date:d,start:"17:00",end:"18:00",members:ms[0]?[ms[0].id]:[],repeat:"none"};
+  const d=(pre&&pre.date)||ymd(view==="agenda"||view==="accueil"?weekDates()[dayIdx]:now());
+  ev=ev||{title:"",date:d,start:(pre&&pre.start)||"17:00",end:(pre&&pre.end)||"18:00",members:ms[0]?[ms[0].id]:[],repeat:"none"};
   const days=ev.days&&ev.days.length?ev.days:[dowOf(parseYmd(ev.date))];
   const f=sheet(`<h3>${isNew?"Nouvelle activité":"Modifier l'activité"}</h3>
-   ${series?'<p class="hint" style="margin:0">Activité répétée : les changements s\'appliquent à toutes les semaines.</p>':""}
    <div class="fld"><label for="f-title">Intitulé</label><input id="f-title" name="title" maxlength="80" value="${esc(ev.title)}" placeholder="Ex. Cours de piano"></div>
-   <div class="fld"><label for="f-date" id="f-date-l">${series?"À partir du":"Date"}</label><input id="f-date" type="date" name="date" value="${esc(ev.date)}"></div>
+   <div class="seg" role="group" aria-label="Fréquence"><button type="button" data-rep="none" aria-pressed="${!series}">Une seule fois</button><button type="button" data-rep="weekly" aria-pressed="${series}">${ICON.rep.replace('width="11" height="11"','width="14" height="14"')} Chaque semaine</button></div>
+   <div class="fld" id="onceBox" ${series?"hidden":""}><label for="f-date">Date</label><input id="f-date" type="date" name="date" value="${esc(ev.date)}"></div>
+   <div class="repbox" id="repBox" ${series?"":"hidden"}>
+     <div class="fld"><label>Quels jours ?</label><div class="dows">${JC.map((j,i)=>`<button type="button" class="dow" data-toggle="many" data-grp="dow" data-val="${i}" aria-pressed="${days.includes(i)}">${j.slice(0,3)}</button>`).join("")}</div>
+       <div class="presets">${PRESETS.map(([l,ds])=>`<button type="button" class="preset" data-days="${ds.join(",")}">${l}</button>`).join("")}</div></div>
+     <p class="rep-sum" id="repSum">${esc(repText(days))}</p>
+     <div class="row2"><div class="fld"><label for="f-from">À partir du</label><input id="f-from" type="date" name="from" value="${esc(ev.date)}"></div><div class="fld"><label for="f-until">Jusqu'au (facultatif)</label><input id="f-until" type="date" name="until" value="${esc(ev.until||"")}"></div></div></div>
    <div class="row2"><div class="fld"><label for="f-start">Début</label><input id="f-start" type="time" name="start" value="${esc(ev.start)}"></div><div class="fld"><label for="f-end">Fin</label><input id="f-end" type="time" name="end" value="${esc(ev.end)}"></div></div>
-   <div class="fld"><label for="f-repeat">Répétition</label><select id="f-repeat" name="repeat"><option value="none">Une seule fois</option><option value="weekly" ${series?"selected":""}>Chaque semaine</option></select></div>
-   <div class="repbox" id="repBox" ${series?"":"hidden"}><div class="fld"><label>Les jours</label><div class="dows">${J1.map((j,i)=>`<button type="button" class="dow" data-toggle="many" data-grp="dow" data-val="${i}" aria-pressed="${days.includes(i)}" aria-label="${JOURS[i]}">${j}</button>`).join("")}</div></div>
-     <div class="fld"><label for="f-until">Jusqu'au (facultatif)</label><input id="f-until" type="date" name="until" value="${esc(ev.until||"")}"></div></div>
    <div class="fld"><label>Qui participe ?</label><div class="chips">${ms.map(m=>`<button type="button" class="chip" data-toggle="many" data-grp="who" data-val="${esc(m.id)}" aria-pressed="${(ev.members||[]).includes(m.id)}">${av(m)}${esc(m.name)}</button>`).join("")}</div></div>`,
-  f=>{const v={title:f.title.value.trim(),date:f.date.value,start:f.start.value,end:f.end.value,members:picked(f,"who"),repeat:f.repeat.value};
-    if(!v.title)return "Donne un intitulé à l'activité.";if(!v.date)return "Choisis une date.";
+  f=>{const weekly=f.querySelector('[data-rep="weekly"]').getAttribute("aria-pressed")==="true";
+    const v={title:f.title.value.trim(),date:weekly?f.from.value:f.date.value,start:f.start.value,end:f.end.value,members:picked(f,"who"),repeat:weekly?"weekly":"none"};
+    if(!v.title)return "Donne un intitulé à l'activité.";if(!v.date)return weekly?"Indique à partir de quand.":"Choisis une date.";
     if(!v.start||!v.end||toMin(v.end)<=toMin(v.start))return "L'heure de fin doit être après l'heure de début.";
     if(toMin(v.start)<H0*60||toMin(v.end)>H1*60)return `Le planning affiche les activités entre ${H0}h et ${H1}h.`;
     if(!v.members.length)return "Choisis au moins un membre.";
-    if(v.repeat==="weekly"){v.days=picked(f,"dow").map(Number).sort();if(!v.days.length)return "Choisis au moins un jour de répétition.";
+    if(weekly){v.days=picked(f,"dow").map(Number).sort();if(!v.days.length)return "Choisis au moins un jour de répétition.";
       v.until=f.until.value||"";if(v.until&&v.until<v.date)return "La date de fin doit être après la date de début.";v.skip=(ev.skip||[]).filter(x=>x>=v.date)}
-    write("events",isNew?uid():ev.id,v);toast(isNew?(v.repeat==="weekly"?"Activité ajoutée chaque semaine":"Activité ajoutée"):"Activité modifiée");
-    if(v.repeat!=="weekly"){const dd=parseYmd(v.date);weekStart=monday(dd);dayIdx=dowOf(dd)}},
+    write("events",isNew?uid():ev.id,v);toast(isNew?(weekly?"Activité ajoutée : "+repText(v.days).toLowerCase().replace(/\.$/,""):"Activité ajoutée"):"Activité modifiée");
+    const dd=parseYmd(v.date);if(!weekly){weekStart=monday(dd);dayIdx=dowOf(dd)}},
   isNew?null:()=>{write("events",ev.id,null);toast(series?"Série supprimée":"Activité supprimée")},series?"Supprimer la série":"Supprimer");
-  f.repeat.addEventListener("change",()=>{$("#repBox").hidden=f.repeat.value!=="weekly";$("#f-date-l").textContent=f.repeat.value==="weekly"?"À partir du":"Date"});
+  const sum=()=>{$("#repSum").textContent=repText(picked(f,"dow").map(Number))};
+  f.querySelectorAll("[data-rep]").forEach(b=>b.addEventListener("click",()=>{
+    const weekly=b.dataset.rep==="weekly";
+    f.querySelectorAll("[data-rep]").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
+    $("#repBox").hidden=!weekly;$("#onceBox").hidden=weekly;
+    if(weekly)f.from.value=f.date.value||f.from.value;else f.date.value=f.from.value||f.date.value;
+    if(weekly&&!picked(f,"dow").length){const di=dowOf(parseYmd(f.from.value||ymd(now())));f.querySelector(`[data-grp="dow"][data-val="${di}"]`).setAttribute("aria-pressed","true")}
+    sum()}));
+  f.querySelectorAll(".dow").forEach(b=>b.addEventListener("click",sum));
+  f.querySelectorAll(".preset").forEach(b=>b.addEventListener("click",()=>{const ds=b.dataset.days.split(",");
+    f.querySelectorAll('[data-grp="dow"]').forEach(x=>x.setAttribute("aria-pressed",String(ds.includes(x.dataset.val))));sum()}));
   if(series&&occ){const od=parseYmd(occ),b=document.createElement("button");b.type="button";b.className="ghost-btn";
     b.textContent=`Annuler le ${JOURS[dowOf(od)].toLowerCase()} ${od.getDate()} seulement`;
     b.onclick=()=>{fs.collection("activites").doc(ev.id).update({skip:firebase.firestore.FieldValue.arrayUnion(occ)}).catch(fail("Mise à jour"));toast("Activité annulée pour ce jour");close()};
